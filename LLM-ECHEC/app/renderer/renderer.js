@@ -202,6 +202,140 @@ function isPathClear(fromCoords, toCoords) {
   return true;
 }
 
+function findKing(board, color) {
+  const kingChar = color === 'w' ? 'K' : 'k';
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      if (board[row][col] === kingChar) {
+        const file = String.fromCharCode(97 + col);
+        const rank = String(8 - row);
+        return file + rank;
+      }
+    }
+  }
+  return null;
+}
+
+function isSquareAttacked(board, square, attackingColor) {
+  const targetCoords = squareToIndices(square);
+  if (!targetCoords) return false;
+  
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
+      if (!piece) continue;
+      
+      const isAttacker = attackingColor === 'w' ? piece === piece.toUpperCase() : piece === piece.toLowerCase();
+      if (!isAttacker) continue;
+      
+      const file = String.fromCharCode(97 + col);
+      const rank = String(8 - row);
+      const fromSquare = file + rank;
+      
+      const pieceCode = pieceCodeFromChar(piece);
+      if (isValidMoveForPieceSimple(board, fromSquare, square, pieceCode, attackingColor)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function isValidMoveForPieceSimple(board, fromSquare, toSquare, pieceCode, color) {
+  const fromCoords = squareToIndices(fromSquare);
+  const toCoords = squareToIndices(toSquare);
+  
+  if (!fromCoords || !toCoords) return false;
+  
+  const dr = Math.abs(toCoords.row - fromCoords.row);
+  const dc = Math.abs(toCoords.col - fromCoords.col);
+  const diffRow = toCoords.row - fromCoords.row;
+  const diffCol = toCoords.col - fromCoords.col;
+  
+  const targetPiece = board[toCoords.row][toCoords.col];
+  if (targetPiece) {
+    const targetIsWhite = targetPiece === targetPiece.toUpperCase();
+    const attackerIsWhite = color === 'w';
+    if (targetIsWhite === attackerIsWhite) return false;
+  }
+  
+  switch (pieceCode) {
+    case 'P': {
+      const direction = color === 'w' ? -1 : 1;
+      const startRow = color === 'w' ? 6 : 1;
+      
+      if (diffCol === 0 && diffRow === direction && !targetPiece) return true;
+      if (diffCol === 0 && diffRow === 2 * direction && fromCoords.row === startRow && !board[toCoords.row][toCoords.col]) return true;
+      if (Math.abs(diffCol) === 1 && diffRow === direction && targetPiece) return true;
+      return false;
+    }
+    case 'N': {
+      return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+    }
+    case 'B': {
+      if (dr !== dc || dr === 0) return false;
+      return isPathClearSimple(board, fromCoords, toCoords);
+    }
+    case 'R': {
+      if (diffRow !== 0 && diffCol !== 0) return false;
+      return isPathClearSimple(board, fromCoords, toCoords);
+    }
+    case 'Q': {
+      if (diffRow !== 0 && diffCol !== 0 && dr !== dc) return false;
+      return isPathClearSimple(board, fromCoords, toCoords);
+    }
+    case 'K': {
+      return dr <= 1 && dc <= 1 && (dr > 0 || dc > 0);
+    }
+    default:
+      return false;
+  }
+}
+
+function isPathClearSimple(board, fromCoords, toCoords) {
+  const dr = toCoords.row > fromCoords.row ? 1 : (toCoords.row < fromCoords.row ? -1 : 0);
+  const dc = toCoords.col > fromCoords.col ? 1 : (toCoords.col < fromCoords.col ? -1 : 0);
+  
+  let currentRow = fromCoords.row + dr;
+  let currentCol = fromCoords.col + dc;
+  
+  while (currentRow !== toCoords.row || currentCol !== toCoords.col) {
+    if (board[currentRow][currentCol]) {
+      return false;
+    }
+    currentRow += dr;
+    currentCol += dc;
+  }
+  return true;
+}
+
+function isKingInCheck(board, color) {
+  const kingSquare = findKing(board, color);
+  if (!kingSquare) return false;
+  
+  const opponentColor = color === 'w' ? 'b' : 'w';
+  return isSquareAttacked(board, kingSquare, opponentColor);
+}
+
+function isMoveLegal(fromSquare, toSquare) {
+  if (!currentBoard) return false;
+  
+  const fromCoords = squareToIndices(fromSquare);
+  const toCoords = squareToIndices(toSquare);
+  if (!fromCoords || !toCoords) return false;
+  
+  // Créer une copie de l'échiquier
+  const boardCopy = currentBoard.map(row => [...row]);
+  
+  // Simuler le coup
+  const piece = boardCopy[fromCoords.row][fromCoords.col];
+  boardCopy[toCoords.row][toCoords.col] = piece;
+  boardCopy[fromCoords.row][fromCoords.col] = null;
+  
+  // Vérifier si le roi est en échec après le coup
+  return !isKingInCheck(boardCopy, currentActiveColor);
+}
+
 function renderBoard(board) {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
@@ -457,6 +591,13 @@ function handleBoardClick(event) {
 
   if (!isValidMoveForPiece(selectedFromSquare, square, fromPieceCode)) {
     setError(`Ce coup est impossible pour ${fromPieceCode === 'P' ? 'un pion' : fromPieceCode}.`);
+    setStatus('');
+    return;
+  }
+
+  // Vérifier si le coup est légal (ne met pas / ne laisse pas le roi en échec)
+  if (!isMoveLegal(selectedFromSquare, square)) {
+    setError(`Ce coup est illégal : il laisse votre roi en échec.`);
     setStatus('');
     return;
   }
