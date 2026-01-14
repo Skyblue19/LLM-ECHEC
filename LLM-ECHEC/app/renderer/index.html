@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LLM Échec (POC)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <h1>LLM Échec (POC)</h1>
+        <div class="sub">Entrer une FEN et afficher l’échiquier</div>
+      </header>
+
+      <main class="main">
+        <!-- Conteneur pour les 4 blocs à gauche -->
+        <div class="left-panels">
+          <!-- Section Saisie -->
+          <section class="panel">
+            <div class="section-header">
+              <h2>📝 Saisie FEN</h2>
+              <p class="section-desc">Entrez une position d'échecs</p>
+            </div>
+            
+            <label class="label" for="fenInput">Position FEN</label>
+            <textarea id="fenInput" class="fen" rows="2" spellcheck="false"></textarea>
+
+            <div class="row">
+              <button id="loadBtn" class="btn">Charger</button>
+              <button id="resetBtn" class="btn btn-secondary">Exemple</button>
+              <button id="clearBtn" class="btn btn-secondary">Réinit</button>
+            </div>
+
+            <div id="error" class="error" role="alert" aria-live="polite"></div>
+            <div id="meta" class="meta"></div>
+          </section>
+
+          <!-- Section Défis -->
+          <section class="panel">
+            <div class="section-header">
+              <h2>🎯 Défis</h2>
+              <p class="section-desc">Entraînez-vous</p>
+            </div>
+            
+            <div class="row">
+              <label class="label" for="defiSelect">Choisir un défi</label>
+              <select id="defiSelect" class="defi-select">
+                <option value="">-- Choisir --</option>
+              </select>
+              <button id="launchDefiBtn" class="btn">Lancer</button>
+            </div>
+          </section>
+
+          <!-- Section Analyse -->
+          <section class="panel">
+            <div class="section-header">
+              <h2>🤖 Analyse IA</h2>
+              <p class="section-desc">Analyse détaillée et critique de coup</p>
+            </div>
+            
+            <div class="row">
+              <button id="analyzeBtn" class="btn btn-primary">Analyser position</button>
+            </div>
+
+            <!-- Zone de critique de coup -->
+            <div class="move-critique-section">
+              <div class="move-input-row">
+                <label class="label">Pièce à déplacer :</label>
+                <select id="pieceSelect" class="piece-select">
+                  <option value="">-- Pièce --</option>
+                  <option value="P">Pion</option>
+                  <option value="N">Cavalier</option>
+                  <option value="B">Fou</option>
+                  <option value="R">Tour</option>
+                  <option value="Q">Dame</option>
+                  <option value="K">Roi</option>
+                </select>
+              </div>
+              
+              <div class="move-input-row">
+                <label class="label">Case de départ (ex: A2) :</label>
+                <input id="fromSquare" class="square-input" type="text" placeholder="A2" maxlength="2">
+              </div>
+              
+              <div class="move-input-row">
+                <label class="label">Case d'arrivée (ex: A4) :</label>
+                <input id="toSquare" class="square-input" type="text" placeholder="A4" maxlength="2">
+              </div>
+              
+              <div class="row">
+                <button id="analyzeMoveBtn" class="btn btn-secondary">Analyser mon coup</button>
+                <button id="clearMoveBtn" class="btn">Effacer</button>
+              </div>
+            </div>
+
+            <div class="result-header">
+              <div class="label">Résultat</div>
+              <div id="status" class="status"></div>
+            </div>
+            <pre id="result" class="result" aria-label="résultat analyse"></pre>
+          </section>
+
+          <!-- Section Sessions -->
+          <section class="panel">
+            <div class="section-header">
+              <h2>💾 Sessions</h2>
+              <p class="section-desc">Sauvegardez</p>
+            </div>
+            
+            <div class="row">
+              <button id="saveSessionBtn" class="btn btn-secondary">Sauver</button>
+              <button id="loadSessionBtn" class="btn btn-secondary">Charger</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Échiquier -->
+        <section class="boardWrap">
+          <div class="boardWithCoords">
+            <div class="coordsLeft">
+              <div>8</div><div>7</div><div>6</div><div>5</div><div>4</div><div>3</div><div>2</div><div>1</div>
+            </div>
+            <div class="boardAndBottom">
+              <div id="board" class="board" aria-label="échiquier"></div>
+              <div class="coordsBottom">
+                <div>a</div><div>b</div><div>c</div><div>d</div><div>e</div><div>f</div><div>g</div><div>h</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Section Progression -->
+      <section class="panel">
+        <div class="section-header">
+          <h2>📊 Progression</h2>
+          <p class="section-desc">Suivez votre progression</p>
+        </div>
+        
+        <div id="progression" class="progression"></div>
+      </section>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

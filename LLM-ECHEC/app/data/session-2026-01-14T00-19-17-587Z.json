@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-01-14T00:19:17.587Z",
+  "fen": "rnbqkb1r/1p1p1ppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 2 6",
+  "result": "### 1) Évaluation du coup : **Moyen**\nLe coup **b3** est un coup passable mais pas optimal. Il ne développe pas les pièces ni ne contrôle le centre. Il est trop passif et ne menace rien.\n\n### 2) Alternatives meilleures :\n- **6. Cf3** : Développe un cavalier et contrôle le centre. C'est un coup naturel et utile.\n- **6. d4** : Ouvre le jeu et contrôle le centre. C'est un coup agressif qui peut mener à une meilleure position.\n- **6. Fe2** : Développe une pièce et prépare le roque. C'est un coup solide et positionnel.\n\n### 3) Explication pédagogique :\nLe coup **b3** est trop passif et ne contribue pas au développement des pièces. Dans les ouvertures, il est crucial de développer les pièces rapidement et de contrôler le centre. Les alternatives proposées (**Cf3**, **d4**, **Fe2**) sont plus actives et aident à améliorer la position des pièces. Il est important de toujours chercher des coups qui développent les pièces et contrôlent le centre pour obtenir un avantage positionnel.",
+  "status": "OK",
+  "themes": [],
+  "errors": [],
+  "moveAnalysis": null
+}

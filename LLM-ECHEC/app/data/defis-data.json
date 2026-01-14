@@ -1,0 +1,42 @@
+[
+  {
+    "id": "defi-1",
+    "titre": "Trouve le plan",
+    "description": "Analyse la position et propose 3 plans strategiques pour les Blancs",
+    "niveau": "1600-1800",
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 4",
+    "objectif": "Identifier les menaces et opportunites pour les Noirs"
+  },
+  {
+    "id": "defi-2",
+    "titre": "Identifie la menace",
+    "description": "Les Noirs viennent de jouer. Trouve le coup le plus menacant et explique pourquoi.",
+    "niveau": "1600-1800",
+    "fen": "rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 4",
+    "objectif": "Developper la vision tactique a long terme"
+  },
+  {
+    "id": "defi-3",
+    "titre": "Calcule la variante",
+    "description": "Evalue 3 coups candidats et choisis le meilleur avec justification.",
+    "niveau": "1800-2000",
+    "fen": "r2qkbnr/ppp2ppp/2n5/2bp4/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6",
+    "objectif": "Maitriser le calcul de variantes"
+  },
+  {
+    "id": "defi-4",
+    "titre": "Defends la position",
+    "description": "Les Blancs sont en difficulte. Trouve la meilleure defense.",
+    "niveau": "1800-2000",
+    "fen": "2kr3r/ppp2ppp/2n5/3q4/3P4/2N5/PPP2PPP/R1BQK2R b KQ - 0 8",
+    "objectif": "Techniques de defense solides"
+  },
+  {
+    "id": "defi-5",
+    "titre": "Attaque de precision",
+    "description": "Execute une sequence tactique forcee pour gagner materiel.",
+    "niveau": "2000-2200",
+    "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/3P4/2N2N2/PPP1PPPP/R1BQKB1R w KQkq - 0 4",
+    "objectif": "Maitriser les attaques combinees"
+  }
+]
