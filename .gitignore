@@ -4,6 +4,8 @@ app/data/
 !defis-data.json
 !progression.json
 !session-*.json
+!package.json
+!app/package.json
 
 # Framework BMad (optionnel : commente si tu veux le versionner)
 y/
