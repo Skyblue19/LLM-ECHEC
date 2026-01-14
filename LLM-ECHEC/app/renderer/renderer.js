@@ -336,6 +336,33 @@ function isMoveLegal(fromSquare, toSquare) {
   return !isKingInCheck(boardCopy, currentActiveColor);
 }
 
+function getAllLegalMoves(fromSquare, pieceCode) {
+  const legalMoves = [];
+  
+  // Parcourir toutes les cases de l'échiquier
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const file = String.fromCharCode(97 + col);
+      const rank = String(8 - row);
+      const toSquare = file + rank;
+      
+      // Vérifier si le coup de base est valide pour cette pièce
+      if (isValidMoveForPiece(fromSquare, toSquare, pieceCode)) {
+        // Vérifier si le coup est légal (ne met pas le roi en échec)
+        if (isMoveLegal(fromSquare, toSquare)) {
+          const targetPiece = getPieceAtSquare(toSquare);
+          legalMoves.push({
+            square: toSquare,
+            isCapture: !!targetPiece
+          });
+        }
+      }
+    }
+  }
+  
+  return legalMoves;
+}
+
 function renderBoard(board) {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
@@ -515,7 +542,7 @@ function clearMoveHighlights() {
   // Nettoyer les surbrillances de coups sur l'échiquier
   const squares = document.querySelectorAll('.square');
   squares.forEach(square => {
-    square.classList.remove('move-highlight', 'move-from', 'move-to');
+    square.classList.remove('move-highlight', 'move-from', 'move-to', 'possible-move', 'capture');
   });
 }
 
@@ -531,6 +558,20 @@ function applyMoveSelectionHighlight() {
   if (selectedFromSquare) {
     const fromSquareEl = document.querySelector(`[data-square="${selectedFromSquare}"]`);
     if (fromSquareEl) fromSquareEl.classList.add('move-from');
+    
+    // Afficher tous les coups possibles
+    if (selectedPieceCode) {
+      const legalMoves = getAllLegalMoves(selectedFromSquare, selectedPieceCode);
+      legalMoves.forEach(move => {
+        const squareEl = document.querySelector(`[data-square="${move.square}"]`);
+        if (squareEl) {
+          squareEl.classList.add('possible-move');
+          if (move.isCapture) {
+            squareEl.classList.add('capture');
+          }
+        }
+      });
+    }
   }
   if (selectedToSquare) {
     const toSquareEl = document.querySelector(`[data-square="${selectedToSquare}"]`);
@@ -622,11 +663,16 @@ function clearResult() {
    clearMoveHighlights();
 }
 
+function resetPosition() {
+  const fenInput = document.getElementById('fenInput');
+  fenInput.value = DEFAULT_FEN;
+  loadFromInput();
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loadBtn').addEventListener('click', loadFromInput);
-  document.getElementById('resetBtn').addEventListener('click', setExample);
   document.getElementById('analyzeBtn').addEventListener('click', analyzeWithMistral);
-  document.getElementById('clearBtn').addEventListener('click', clearResult);
+  document.getElementById('clearBtn').addEventListener('click', resetPosition);
   document.getElementById('saveSessionBtn').addEventListener('click', saveSession);
   document.getElementById('loadSessionBtn').addEventListener('click', loadSession);
   document.getElementById('launchDefiBtn').addEventListener('click', launchDefi);
@@ -641,7 +687,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Afficher la progression initiale
   updateProgression({});
 
-  setExample();
+  resetPosition();
 });
 
 async function saveSession() {
@@ -851,12 +897,6 @@ function loadFromInput() {
   clearMoveSelection();
   renderBoard(parsed.board);
   setStatus('FEN chargée');
-}
-
-function setExample() {
-  const fenInput = document.getElementById('fenInput');
-  fenInput.value = DEFAULT_FEN;
-  loadFromInput();
 }
 
  async function analyzeWithMistral() {
