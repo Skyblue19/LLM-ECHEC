@@ -63,34 +63,18 @@
               <button id="analyzeBtn" class="btn btn-primary">Analyser position</button>
             </div>
 
+            <!-- Champs cachés pour stocker les données de coup -->
+            <input type="hidden" id="pieceSelect" value="">
+            <input type="hidden" id="fromSquare" value="">
+            <input type="hidden" id="toSquare" value="">
+            
             <!-- Zone de critique de coup -->
             <div class="move-critique-section">
-              <div class="move-input-row">
-                <label class="label">Pièce à déplacer :</label>
-                <select id="pieceSelect" class="piece-select">
-                  <option value="">-- Pièce --</option>
-                  <option value="P">Pion</option>
-                  <option value="N">Cavalier</option>
-                  <option value="B">Fou</option>
-                  <option value="R">Tour</option>
-                  <option value="Q">Dame</option>
-                  <option value="K">Roi</option>
-                </select>
-              </div>
-              
-              <div class="move-input-row">
-                <label class="label">Case de départ (ex: A2) :</label>
-                <input id="fromSquare" class="square-input" type="text" placeholder="A2" maxlength="2">
-              </div>
-              
-              <div class="move-input-row">
-                <label class="label">Case d'arrivée (ex: A4) :</label>
-                <input id="toSquare" class="square-input" type="text" placeholder="A4" maxlength="2">
-              </div>
+              <p class="move-instruction">🖱️ Cliquez sur l'échiquier : <strong>1)</strong> pièce à déplacer, <strong>2)</strong> case de destination</p>
               
               <div class="row">
                 <button id="analyzeMoveBtn" class="btn btn-secondary">Analyser mon coup</button>
-                <button id="clearMoveBtn" class="btn">Effacer</button>
+                <button id="clearMoveBtn" class="btn">Réinitialiser sélection</button>
               </div>
             </div>
 

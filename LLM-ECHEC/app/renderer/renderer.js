@@ -15,6 +15,13 @@ const pieceToUnicode = {
   K: '♔'
 };
 
+// État courant pour relier l'échiquier aux clics utilisateur
+let currentBoard = null;
+let currentActiveColor = 'w';
+let selectedFromSquare = null;
+let selectedToSquare = null;
+let selectedPieceCode = null;
+
 function normalizeFen(input) {
   const trimmed = (input ?? '').trim();
   if (!trimmed) return { ok: false, error: 'FEN vide.' };
@@ -97,6 +104,104 @@ function parseFen(fen) {
   };
 }
 
+function squareToIndices(square) {
+  if (!square || square.length !== 2) return null;
+  const file = square[0].toLowerCase();
+  const rank = Number(square[1]);
+  if (file < 'a' || file > 'h' || Number.isNaN(rank) || rank < 1 || rank > 8) return null;
+  return { row: 8 - rank, col: file.charCodeAt(0) - 97 };
+}
+
+function getPieceAtSquare(square) {
+  if (!currentBoard) return null;
+  const coords = squareToIndices(square);
+  if (!coords) return null;
+  return currentBoard[coords.row]?.[coords.col] ?? null;
+}
+
+function pieceCodeFromChar(ch) {
+  if (!ch) return null;
+  const upper = ch.toUpperCase();
+  return ['P', 'N', 'B', 'R', 'Q', 'K'].includes(upper) ? upper : null;
+}
+
+function belongsToCurrentPlayer(piece) {
+  if (!piece) return false;
+  if (currentActiveColor === 'w') {
+    return piece === piece.toUpperCase();
+  } else {
+    return piece === piece.toLowerCase();
+  }
+}
+
+function isValidMoveForPiece(fromSquare, toSquare, pieceCode) {
+  const fromCoords = squareToIndices(fromSquare);
+  const toCoords = squareToIndices(toSquare);
+  
+  if (!fromCoords || !toCoords) return false;
+  
+  const dr = Math.abs(toCoords.row - fromCoords.row);
+  const dc = Math.abs(toCoords.col - fromCoords.col);
+  const diffRow = toCoords.row - fromCoords.row;
+  const diffCol = toCoords.col - fromCoords.col;
+  
+  const targetPiece = getPieceAtSquare(toSquare);
+  if (targetPiece && belongsToCurrentPlayer(targetPiece)) {
+    return false;
+  }
+  
+  switch (pieceCode) {
+    case 'P': {
+      const direction = currentActiveColor === 'w' ? -1 : 1;
+      const startRow = currentActiveColor === 'w' ? 6 : 1;
+      
+      if (diffCol === 0 && diffRow === direction && !targetPiece) return true;
+      if (diffCol === 0 && diffRow === 2 * direction && fromCoords.row === startRow && !getPieceAtSquare(toSquare)) return true;
+      if (Math.abs(diffCol) === 1 && diffRow === direction && targetPiece) return true;
+      return false;
+    }
+    case 'N': {
+      return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+    }
+    case 'B': {
+      if (dr !== dc || dr === 0) return false;
+      return isPathClear(fromCoords, toCoords);
+    }
+    case 'R': {
+      if (diffRow !== 0 && diffCol !== 0) return false;
+      return isPathClear(fromCoords, toCoords);
+    }
+    case 'Q': {
+      if (diffRow !== 0 && diffCol !== 0 && dr !== dc) return false;
+      return isPathClear(fromCoords, toCoords);
+    }
+    case 'K': {
+      return dr <= 1 && dc <= 1 && (dr > 0 || dc > 0);
+    }
+    default:
+      return false;
+  }
+}
+
+function isPathClear(fromCoords, toCoords) {
+  const dr = toCoords.row > fromCoords.row ? 1 : (toCoords.row < fromCoords.row ? -1 : 0);
+  const dc = toCoords.col > fromCoords.col ? 1 : (toCoords.col < fromCoords.col ? -1 : 0);
+  
+  let currentRow = fromCoords.row + dr;
+  let currentCol = fromCoords.col + dc;
+  
+  while (currentRow !== toCoords.row || currentCol !== toCoords.col) {
+    const file = String.fromCharCode(97 + currentCol);
+    const rank = String(8 - currentRow);
+    if (getPieceAtSquare(file + rank)) {
+      return false;
+    }
+    currentRow += dr;
+    currentCol += dc;
+  }
+  return true;
+}
+
 function renderBoard(board) {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
@@ -110,6 +215,7 @@ function renderBoard(board) {
       const file = String.fromCharCode(97 + c); // a-h
       const rank = String(8 - r); // 8-1
       square.setAttribute('data-square', file + rank);
+      square.setAttribute('data-piece', board[r][c] ?? '');
       
       const piece = board[r][c];
       square.textContent = piece ? pieceToUnicode[piece] : '';
@@ -155,42 +261,27 @@ function formatMistralResponse(text) {
 }
 
 function validateMove() {
-  const pieceSelect = document.getElementById('pieceSelect');
-  const fromSquare = document.getElementById('fromSquare');
-  const toSquare = document.getElementById('toSquare');
-  
-  // Validation des cases (insensible à la casse)
-  const squarePattern = /^[a-hA-H][1-8]$/;
-  if (!squarePattern.test(fromSquare.value.trim())) {
-    return { ok: false, error: 'Case de départ invalide. Ex: A2, E4, H8' };
-  }
-  
-  if (!squarePattern.test(toSquare.value.trim())) {
-    return { ok: false, error: 'Case d\'arrivée invalide. Ex: A2, E4, H8' };
+  // Vérifier que les variables de sélection sont remplies
+  if (!selectedFromSquare || !selectedToSquare || !selectedPieceCode) {
+    return { ok: false, error: 'Sélectionne un coup sur l\'échiquier : clique sur la pièce puis sur la case de destination.' };
   }
   
   // Construction du coup en notation algébrique
   let move = '';
-  const piece = pieceSelect.value;
-  const from = fromSquare.value.trim().toLowerCase(); // Convertir en minuscules pour la notation
-  const to = toSquare.value.trim().toLowerCase();
+  const to = selectedToSquare.toLowerCase();
   
-  // Si pas de pièce sélectionnée, c'est un pion
-  if (!piece || piece === 'P') {
-    // Pion : ex: e4, exd5 (capture automatique si pièce sur la case d'arrivée)
-    move = to; // e4 (la capture sera détectée automatiquement)
+  // Si c'est un pion
+  if (selectedPieceCode === 'P') {
+    move = to; // e4
   } else {
-    // Pièce : ex: Nf3, Bxe5 (capture automatique si pièce sur la case d'arrivée)
-    move = piece + to; // Nf3 (la capture sera détectée automatiquement)
+    move = selectedPieceCode + to; // Nf3
   }
   
   return { ok: true, move: move };
 }
 
 function clearMoveInputs() {
-  document.getElementById('pieceSelect').value = '';
-  document.getElementById('fromSquare').value = '';
-  document.getElementById('toSquare').value = '';
+  clearMoveSelection();
 }
 
 async function analyzeMove() {
@@ -294,6 +385,94 @@ function clearMoveHighlights() {
   });
 }
 
+function clearMoveSelection() {
+  selectedFromSquare = null;
+  selectedToSquare = null;
+  selectedPieceCode = null;
+  clearMoveHighlights();
+}
+
+function applyMoveSelectionHighlight() {
+  clearMoveHighlights();
+  if (selectedFromSquare) {
+    const fromSquareEl = document.querySelector(`[data-square="${selectedFromSquare}"]`);
+    if (fromSquareEl) fromSquareEl.classList.add('move-from');
+  }
+  if (selectedToSquare) {
+    const toSquareEl = document.querySelector(`[data-square="${selectedToSquare}"]`);
+    if (toSquareEl) toSquareEl.classList.add('move-to');
+  }
+}
+
+function handleBoardClick(event) {
+  const squareEl = event.target.closest('.square');
+  if (!squareEl) return;
+
+  const square = squareEl.getAttribute('data-square');
+  if (!square) return;
+
+  if (!currentBoard) {
+    setError('Charge une position FEN avant de sélectionner un coup.');
+    setStatus('');
+    return;
+  }
+
+  const piece = getPieceAtSquare(square);
+
+  if (!selectedFromSquare) {
+    if (!piece) {
+      setError('Choisis une pièce sur l\'échiquier.');
+      setStatus('');
+      return;
+    }
+    
+    if (!belongsToCurrentPlayer(piece)) {
+      const playerColor = currentActiveColor === 'w' ? 'blancs' : 'noirs';
+      setError(`Cette pièce n'appartient pas aux ${playerColor}.`);
+      setStatus('');
+      return;
+    }
+
+    selectedFromSquare = square;
+    selectedPieceCode = pieceCodeFromChar(piece);
+    setError('');
+    setStatus(`Pièce sélectionnée : ${pieceToUnicode[piece]} en ${square.toUpperCase()}. Choisis la case d'arrivée.`);
+    selectedToSquare = null;
+    applyMoveSelectionHighlight();
+    return;
+  }
+
+  const fromPiece = getPieceAtSquare(selectedFromSquare);
+  const fromPieceCode = pieceCodeFromChar(fromPiece);
+
+  if (piece && belongsToCurrentPlayer(piece)) {
+    selectedFromSquare = square;
+    selectedPieceCode = pieceCodeFromChar(piece);
+    setError('');
+    setStatus(`Nouvelle pièce sélectionnée : ${pieceToUnicode[piece]} en ${square.toUpperCase()}. Choisis la case d'arrivée.`);
+    selectedToSquare = null;
+    applyMoveSelectionHighlight();
+    return;
+  }
+
+  if (!isValidMoveForPiece(selectedFromSquare, square, fromPieceCode)) {
+    setError(`Ce coup est impossible pour ${fromPieceCode === 'P' ? 'un pion' : fromPieceCode}.`);
+    setStatus('');
+    return;
+  }
+
+  selectedToSquare = square;
+  setError('');
+  setStatus(`Coup sélectionné : ${pieceToUnicode[fromPiece]} ${selectedFromSquare.toUpperCase()} → ${square.toUpperCase()}. Clique sur "Analyser mon coup".`);
+  applyMoveSelectionHighlight();
+}
+
+function initBoardInteractions() {
+  const boardEl = document.getElementById('board');
+  if (!boardEl) return;
+  boardEl.addEventListener('click', handleBoardClick);
+}
+
 function clearResult() {
    setStatus('');
    setResult('');
@@ -313,6 +492,8 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('analyzeMoveBtn').addEventListener('click', analyzeMove);
   document.getElementById('clearMoveBtn').addEventListener('click', clearMoveInputs);
 
+  initBoardInteractions();
+
   // Charger les défis au démarrage
   loadDefis();
   
@@ -326,9 +507,6 @@ async function saveSession() {
   const fenInput = document.getElementById('fenInput');
   const resultEl = document.getElementById('result');
   const statusEl = document.getElementById('status');
-  const pieceSelect = document.getElementById('pieceSelect');
-  const fromSquare = document.getElementById('fromSquare');
-  const toSquare = document.getElementById('toSquare');
   
   const sessionData = {
     timestamp: new Date().toISOString(),
@@ -338,11 +516,11 @@ async function saveSession() {
     themes: [], // TODO: extraire des thèmes depuis le résultat
     errors: [], // TODO: extraire des erreurs depuis le résultat
     // Ajouter les données de coup analysé si présentes
-    moveAnalysis: pieceSelect.value && fromSquare.value && toSquare.value ? {
-      piece: pieceSelect.value,
-      from: fromSquare.value,
-      to: toSquare.value,
-      move: validateMove().move || null
+    moveAnalysis: selectedFromSquare && selectedToSquare && selectedPieceCode ? {
+      piece: selectedPieceCode,
+      from: selectedFromSquare,
+      to: selectedToSquare,
+      move: validateMove().ok ? validateMove().move : null
     } : null
   };
   
@@ -527,6 +705,9 @@ function loadFromInput() {
 
   setError('');
   setMeta(parsed.activeColor);
+  currentBoard = parsed.board;
+  currentActiveColor = parsed.activeColor;
+  clearMoveSelection();
   renderBoard(parsed.board);
   setStatus('FEN chargée');
 }
@@ -572,20 +753,3 @@ function setExample() {
    setResult(res.content);
  }
 
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loadBtn').addEventListener('click', loadFromInput);
-  document.getElementById('resetBtn').addEventListener('click', setExample);
-  document.getElementById('analyzeBtn').addEventListener('click', analyzeWithMistral);
-  document.getElementById('clearBtn').addEventListener('click', clearResult);
-  document.getElementById('saveSessionBtn').addEventListener('click', saveSession);
-  document.getElementById('loadSessionBtn').addEventListener('click', loadSession);
-  document.getElementById('launchDefiBtn').addEventListener('click', launchDefi);
-
-  // Charger les défis au démarrage
-  loadDefis();
-  
-  // Afficher la progression initiale
-  updateProgression({});
-
-  setExample();
-});
